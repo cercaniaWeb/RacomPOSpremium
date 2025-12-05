@@ -39,6 +39,8 @@ export const usePushNotifications = () => {
 
         try {
             const registration = await navigator.serviceWorker.register('/sw.js');
+            await navigator.serviceWorker.ready; // Wait for SW to be active
+
             const publicVapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
 
             if (!publicVapidKey) {
