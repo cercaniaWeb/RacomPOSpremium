@@ -12,6 +12,11 @@ const nextConfig = {
         protocol: 'https',
         hostname: '*.supabase.co',
       },
+      {
+        // Allow images from any HTTPS source for product image search
+        protocol: 'https',
+        hostname: '**',
+      },
     ],
   },
 }
