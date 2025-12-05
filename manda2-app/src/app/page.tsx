@@ -2,11 +2,14 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { ShoppingCart, Search, Check, Store, MapPin, ChevronRight } from 'lucide-react';
-import { supabase } from '@/lib/supabase';
+import { createClient } from '@/utils/supabase/client';
+import { User } from '@supabase/supabase-js';
 import { Product, CartItem } from '@/lib/types';
 import { LocationGate } from '@/components/LocationGate';
 import { ProductCard } from '@/components/ProductCard';
 import { CheckoutFlow } from '@/components/CheckoutFlow';
+import { UserMenu } from '@/components/UserMenu';
+import { TicketView } from '@/components/TicketView';
 
 // --- MOCK CATEGORIES ---
 const CATEGORIES = [
@@ -25,7 +28,7 @@ const Toast = ({ message, type, onClose }: { message: string, type: 'success' | 
   }, [onClose]);
 
   const bgColor = type === 'error' ? 'bg-red-100 border-red-500 text-red-700' : 'bg-green-100 border-green-500 text-green-700';
-  const Icon = type === 'error' ? Check : Check; // Using Check for success, maybe AlertCircle for error but keeping simple
+  const Icon = type === 'error' ? Check : Check;
 
   return (
     <div className={`fixed top-24 left-1/2 transform -translate-x-1/2 w-11/12 max-w-md z-[100] flex items-center p-4 border-l-4 shadow-xl rounded-r ${bgColor} transition-all duration-300 animate-in fade-in slide-in-from-top-4`}>
@@ -36,6 +39,7 @@ const Toast = ({ message, type, onClose }: { message: string, type: 'success' | 
 };
 
 export default function App() {
+  const [user, setUser] = useState<User | null>(null);
   const [view, setView] = useState<'location-gate' | 'home' | 'checkout' | 'success'>('location-gate');
 
   // Flow States
@@ -48,6 +52,18 @@ export default function App() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('todos');
   const [toast, setToast] = useState<{ message: string, type: 'success' | 'error' } | null>(null);
+  const [lastSale, setLastSale] = useState<any>(null);
+
+  const supabase = createClient();
+
+  // Check User Session
+  useEffect(() => {
+    const checkUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      setUser(user);
+    };
+    checkUser();
+  }, []);
 
   // Fetch Products from Supabase
   useEffect(() => {
@@ -105,24 +121,54 @@ export default function App() {
   const filteredProducts = useMemo(() => {
     return products.filter(p => {
       const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase());
-      // Category filtering logic would go here if we had category names in DB matching these IDs
-      // For now, simple search
       return matchesSearch;
     });
   }, [products, searchQuery, selectedCategory]);
 
   const handleCheckoutComplete = async (paymentMethod: string, details: any) => {
     try {
-      // Create Sale in Supabase
-      const { error } = await supabase.from('sales').insert({
+      // 1. Save Address if User is Logged In
+      console.log('Attempting to save address:', { user: !!user, deliveryMode, deliveryLocation });
+      if (user && deliveryMode === 'delivery' && deliveryLocation) {
+        const { data: addrData, error: addrError } = await supabase
+          .from('user_addresses')
+          .insert({
+            user_id: user.id,
+            address: deliveryLocation,
+          })
+          .select();
+
+        if (addrError) {
+          console.error('Error saving address:', addrError);
+        } else {
+          console.log('Address saved successfully:', addrData);
+        }
+      }
+
+      // 2. Create Sale in Supabase
+      const saleData = {
         total: cartTotal,
         payment_method: paymentMethod,
         notes: `Order from Manda2 (${deliveryMode}) - ${deliveryLocation}. Details: ${JSON.stringify(details)}`,
         source: 'Manda2',
+        user_id: user?.id,
+        customer_name: user?.user_metadata.full_name || user?.email,
         created_at: new Date().toISOString(),
-      });
+        fulfillment_status: 'pending'
+      };
 
-      if (error) throw error;
+      const { data, error } = await supabase
+        .from('sales')
+        .insert(saleData)
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Supabase error creating order:', error);
+        throw error;
+      }
+
+      setLastSale(data);
       setView('success');
     } catch (error) {
       console.error('Error creating order:', error);
@@ -143,31 +189,19 @@ export default function App() {
     return <LocationGate onComplete={handleLocationComplete} />;
   }
 
-  // VISTA FINAL: ÉXITO
-  if (view === 'success') {
+  // VISTA FINAL: ÉXITO (TICKET)
+  if (view === 'success' && lastSale) {
     return (
-      <div className="min-h-screen bg-[#556B2F] flex flex-col items-center justify-center p-8 text-white text-center">
-        <div className="bg-white text-[#556B2F] p-6 rounded-full mb-6 shadow-2xl animate-bounce">
-          <Check size={48} strokeWidth={4} />
-        </div>
-        <h1 className="text-4xl font-extrabold mb-4">¡Orden Lista!</h1>
-        <p className="text-xl opacity-90 mb-2">Gracias por tu compra.</p>
-        <p className="text-sm opacity-75 mb-8">
-          {deliveryMode === 'delivery'
-            ? 'Tu pedido llegará en aprox. 20 min.'
-            : 'Puedes pasar a recoger en 20 min.'}
-        </p>
-        <button
-          onClick={() => {
-            setCart([]);
-            setView('home');
-            setSearchQuery('');
-          }}
-          className="bg-white text-[#556B2F] px-8 py-3 rounded-xl font-bold shadow-lg"
-        >
-          Nueva Compra
-        </button>
-      </div>
+      <TicketView
+        sale={lastSale}
+        items={cart}
+        onNewOrder={() => {
+          setCart([]);
+          setLastSale(null);
+          setView('home');
+          setSearchQuery('');
+        }}
+      />
     );
   }
 
@@ -194,14 +228,19 @@ export default function App() {
 
       {/* HEADER & SEARCH */}
       <div className="sticky top-0 z-40 bg-white shadow-sm pt-4 pb-2 px-4">
-        {/* Location Header */}
-        <div
-          onClick={() => setView('location-gate')}
-          className="flex items-center text-[#556B2F] text-sm font-bold mb-3 cursor-pointer"
-        >
-          {deliveryMode === 'pickup' ? <Store size={16} className="mr-1" /> : <MapPin size={16} className="mr-1" />}
-          <span className="truncate max-w-[200px]">{deliveryLocation}</span>
-          <ChevronRight size={14} className="ml-1" />
+        <div className="flex justify-between items-start mb-3">
+          {/* Location Header */}
+          <div
+            onClick={() => setView('location-gate')}
+            className="flex items-center text-[#556B2F] text-sm font-bold cursor-pointer"
+          >
+            {deliveryMode === 'pickup' ? <Store size={16} className="mr-1" /> : <MapPin size={16} className="mr-1" />}
+            <span className="truncate max-w-[150px]">{deliveryLocation}</span>
+            <ChevronRight size={14} className="ml-1" />
+          </div>
+
+          {/* User Menu */}
+          <UserMenu user={user} />
         </div>
 
         <div className="relative mb-3">

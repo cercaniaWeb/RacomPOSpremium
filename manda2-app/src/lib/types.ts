@@ -11,3 +11,12 @@ export interface Product {
 export interface CartItem extends Product {
     qty: number;
 }
+
+export interface Store {
+    id: string;
+    name: string;
+    address?: string;
+    phone?: string;
+    type: string;
+    is_active: boolean;
+}

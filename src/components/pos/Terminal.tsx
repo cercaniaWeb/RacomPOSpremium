@@ -24,7 +24,8 @@ import TicketPreviewModal from './TicketPreviewModal';
 import { useProductSync } from '@/hooks/useProductSync';
 import { useStoreContext } from '@/hooks/useStoreContext';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
-import { Bell, BellOff } from 'lucide-react';
+import { Bell, BellOff, ChefHat } from 'lucide-react';
+import KitchenMonitor from './KitchenMonitor';
 
 export default function POSTerminal() {
   const [query, setQuery] = useState('');
@@ -36,6 +37,7 @@ export default function POSTerminal() {
   const [showCloseRegisterModal, setShowCloseRegisterModal] = useState(false);
   const [showHistoryModal, setShowHistoryModal] = useState(false);
   const [showTicketPreviewModal, setShowTicketPreviewModal] = useState(false);
+  const [showKitchenMonitor, setShowKitchenMonitor] = useState(false);
   const [lastSale, setLastSale] = useState<{ sale: any, items: any[] } | null>(null);
   const [offline, setOffline] = useState(false);
   const [showScanner, setShowScanner] = useState(false);
@@ -198,6 +200,14 @@ export default function POSTerminal() {
             >
               <History size={16} />
               <span className="hidden md:inline">Ver Ventas</span>
+            </button>
+            <button
+              className="bg-orange-600 hover:bg-orange-500 text-white p-2 md:px-3 md:py-2 rounded-lg flex items-center gap-2 transition-colors text-sm font-bold"
+              onClick={() => setShowKitchenMonitor(true)}
+              title="Monitor Cocina"
+            >
+              <ChefHat size={16} />
+              <span className="hidden md:inline">Cocina</span>
             </button>
             <button
               className="bg-red-900/30 hover:bg-red-900/50 text-red-400 border border-red-900/50 p-2 md:px-3 md:py-2 rounded-lg flex items-center gap-2 transition-colors text-sm font-bold"
@@ -447,6 +457,10 @@ export default function POSTerminal() {
           items={lastSale?.items || []}
           config={ticketConfig}
           user={user || undefined}
+        />
+        <KitchenMonitor
+          isOpen={showKitchenMonitor}
+          onClose={() => setShowKitchenMonitor(false)}
         />
 
         {showScanner && (
