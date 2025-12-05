@@ -72,10 +72,26 @@ export const generateTicketHtml = ({ sale, items, config, user }: PrintTicketPar
             <span>-$${sale.discount_amount.toFixed(2)}</span>
           </div>
         ` : ''}
+        ${sale.commission_amount > 0 ? `
+          <div class="flex justify-between" style="display: flex; justify-content: space-between;">
+            <span>Comisión:</span>
+            <span>$${sale.commission_amount.toFixed(2)}</span>
+          </div>
+        ` : ''}
         <div class="flex justify-between font-bold" style="display: flex; justify-content: space-between; font-weight: bold; font-size: 14px; margin-top: 5px;">
           <span>TOTAL:</span>
           <span>$${sale.total_amount.toFixed(2)}</span>
         </div>
+        ${sale.payment_method === 'cash' && sale.amount_paid ? `
+          <div class="flex justify-between" style="display: flex; justify-content: space-between; margin-top: 5px;">
+            <span>Efectivo:</span>
+            <span>$${sale.amount_paid.toFixed(2)}</span>
+          </div>
+          <div class="flex justify-between" style="display: flex; justify-content: space-between;">
+            <span>Cambio:</span>
+            <span>$${(sale.change_amount || 0).toFixed(2)}</span>
+          </div>
+        ` : ''}
         <div class="flex justify-between" style="display: flex; justify-content: space-between; font-size: 11px; margin-top: 2px;">
           <span>Pago (${sale.payment_method === 'cash' ? 'Efectivo' : 'Tarjeta'}):</span>
           <span>$${sale.total_amount.toFixed(2)}</span>

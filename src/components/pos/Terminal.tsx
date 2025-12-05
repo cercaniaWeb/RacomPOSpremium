@@ -115,8 +115,8 @@ export default function POSTerminal() {
     searchInputRef.current?.focus();
   };
 
-  const handlePayment = async (method: string) => {
-    const result = await checkout(method);
+  const handlePayment = async (method: string, amountPaid?: number, commission?: number) => {
+    const result = await checkout(method, amountPaid, commission);
     if (result) {
       setLastSale(result);
       setShowPaymentModal(false);

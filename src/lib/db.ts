@@ -67,6 +67,9 @@ export interface Sale {
   total_amount: number;
   tax_amount?: number;
   discount_amount?: number;
+  commission_amount?: number;
+  amount_paid?: number;
+  change_amount?: number;
   net_amount: number;
   payment_method: string;
   status: 'completed' | 'voided' | 'pending';

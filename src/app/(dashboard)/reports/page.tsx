@@ -6,8 +6,10 @@ import Text from '@/components/atoms/Text';
 import ChatbotModal from '@/components/organisms/ChatbotModal';
 import { Sparkles } from 'lucide-react';
 import { useReportMetrics } from '@/hooks/useReportMetrics';
+import { useRouter } from 'next/navigation';
 
 const ReportsPage = () => {
+  const router = useRouter();
   const [showChatbot, setShowChatbot] = useState(false);
   const { metrics, changes, loading, error } = useReportMetrics();
 
@@ -105,7 +107,13 @@ const ReportsPage = () => {
             trend={report.trend}
             description={report.description}
             icon={report.icon}
-            onAction={() => console.log(`View details for ${report.title}`)}
+            onAction={() => {
+              if (report.id === 'products-sold') {
+                router.push('/reports/inventario');
+              } else {
+                router.push('/reports/ventas');
+              }
+            }}
           />
         ))}
       </div>

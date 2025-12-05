@@ -9,7 +9,7 @@ interface PaymentModalProps {
     onClose: () => void;
     cart: CartItem[];
     total: number;
-    onProcessPayment: (method: 'cash' | 'card', amountPaid?: number) => Promise<void>;
+    onProcessPayment: (method: 'cash' | 'card', amountPaid?: number, commission?: number) => Promise<void>;
 }
 
 const PaymentModal: React.FC<PaymentModalProps> = ({
@@ -62,7 +62,11 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
 
         setIsProcessing(true);
         try {
-            await onProcessPayment(paymentMethod, paymentMethod === 'cash' ? parseFloat(cashAmount) : undefined);
+            await onProcessPayment(
+                paymentMethod,
+                paymentMethod === 'cash' ? parseFloat(cashAmount) : undefined,
+                paymentMethod === 'card' ? cardCommission : 0
+            );
             onClose();
         } catch (error) {
             console.error('Payment failed', error);

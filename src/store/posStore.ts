@@ -31,7 +31,7 @@ interface PosState {
   getTotals: () => { subtotal: number; taxAmount: number; discountAmount: number; total: number };
 
   // Async Actions
-  checkout: (paymentMethod?: string) => Promise<{ sale: any; items: any[] } | null>;
+  checkout: (paymentMethod?: string, amountPaid?: number, commissionAmount?: number) => Promise<{ sale: any; items: any[] } | null>;
 }
 
 export const usePosStore = create<PosState>((set, get) => ({
@@ -145,19 +145,24 @@ export const usePosStore = create<PosState>((set, get) => ({
     };
   },
 
-  checkout: async (paymentMethod = 'cash') => {
+  checkout: async (paymentMethod = 'cash', amountPaid = 0, commissionAmount = 0) => {
     const { cart, getTotals, saleNotes } = get();
     if (cart.length === 0) return null;
 
     const { subtotal, taxAmount, discountAmount, total } = getTotals();
+    const finalTotal = total + commissionAmount;
+    const changeAmount = amountPaid > 0 ? amountPaid - finalTotal : 0;
 
     try {
       // Create sale record
       const sale: Omit<Sale, 'id'> = {
         transaction_id: `TXN-${Date.now()}`,
-        total_amount: total,
+        total_amount: finalTotal,
         tax_amount: taxAmount,
         discount_amount: discountAmount,
+        commission_amount: commissionAmount,
+        amount_paid: amountPaid > 0 ? amountPaid : finalTotal, // If not provided, assume exact payment
+        change_amount: changeAmount,
         net_amount: subtotal,
         payment_method: paymentMethod,
         status: 'completed',

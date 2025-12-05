@@ -1,81 +1,134 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import Text from '@/components/atoms/Text';
+import { supabase } from '@/lib/supabase/client';
+import { format } from 'date-fns';
+import { es } from 'date-fns/locale';
+
+interface Sale {
+  id: string;
+  created_at: string;
+  customer_name: string | null;
+  total: number;
+  source: string;
+  payment_method: string;
+}
 
 const SalesReportsPage = () => {
-  // Mock user data
-  const user = {
-    name: 'Gerente',
-    status: 'online' as const,
-  };
+  const [sales, setSales] = useState<Sale[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [timeRange, setTimeRange] = useState('30'); // days
 
-  // Mock sales data
-  const salesData = [
-    { id: '1', date: '2023-04-01', customer: 'Cliente 1', total: 125.50, status: 'completed' },
-    { id: '2', date: '2023-04-01', customer: 'Cliente 2', total: 89.99, status: 'completed' },
-    { id: '3', date: '2023-04-02', customer: 'Cliente 3', total: 210.75, status: 'completed' },
-    { id: '4', date: '2023-04-02', customer: 'Cliente 4', total: 45.25, status: 'completed' },
-    { id: '5', date: '2023-04-03', customer: 'Cliente 5', total: 325.00, status: 'completed' },
-  ];
+  useEffect(() => {
+    const fetchSales = async () => {
+      try {
+        setLoading(true);
+        const now = new Date();
+        const startDate = new Date();
+        startDate.setDate(now.getDate() - parseInt(timeRange));
 
-  const tableColumns = [
-    { key: 'id', title: 'ID' },
-    { key: 'date', title: 'Fecha' },
-    { key: 'customer', title: 'Cliente' },
-    { key: 'total', title: 'Total' },
-    { key: 'status', title: 'Estado' },
-    { 
-      key: 'actions', 
-      title: 'Acciones',
-      render: (value: any, item: any) => (
-        <button className="bg-primary-600 text-white px-3 py-1 rounded hover:bg-primary-700">Ver</button>
-      )
-    }
-  ];
+        const { data, error } = await supabase
+          .from('sales')
+          .select('id, created_at, customer_name, total, source, payment_method')
+          .gte('created_at', startDate.toISOString())
+          .order('created_at', { ascending: false });
+
+        if (error) throw error;
+        setSales(data || []);
+      } catch (err) {
+        console.error('Error fetching sales:', err);
+        setError('Error al cargar las ventas');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchSales();
+  }, [timeRange]);
+
+  const tableColumns: {
+    key: string;
+    title: string;
+    render?: (value: any, item: Sale) => React.ReactNode;
+  }[] = [
+      { key: 'created_at', title: 'Fecha', render: (value: string) => format(new Date(value), 'dd/MM/yyyy HH:mm', { locale: es }) },
+      {
+        key: 'source', title: 'Origen', render: (value: string) => (
+          <span className={`px-2 py-1 rounded-full text-xs font-semibold ${value === 'Manda2' ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'
+            }`}>
+            {value || 'POS'}
+          </span>
+        )
+      },
+      { key: 'customer_name', title: 'Cliente', render: (value: string) => value || 'Cliente General' },
+      { key: 'payment_method', title: 'Método', render: (value: string) => value === 'cash' ? 'Efectivo' : (value === 'card' ? 'Tarjeta' : value) },
+      { key: 'total', title: 'Total', render: (value: number) => `$${value.toFixed(2)}` },
+      {
+        key: 'actions',
+        title: 'Acciones',
+        render: (_: any, item: Sale) => (
+          <button className="text-primary-600 hover:text-primary-800 font-medium text-sm">
+            Ver Ticket
+          </button>
+        )
+      }
+    ];
 
   return (
     <div>
-        <div className="mb-6">
-          <Text variant="h3" className="font-bold text-gray-900">Reportes de Ventas</Text>
-          <Text variant="body" className="text-gray-600">Registro detallado de todas las ventas</Text>
+      <div className="mb-6">
+        <Text variant="h3" className="font-bold text-white">Reportes de Ventas</Text>
+        <Text variant="body" className="text-muted-foreground">Registro detallado de todas las ventas</Text>
+      </div>
+
+      <div className="glass rounded-xl border border-white/10 shadow-xl p-6">
+        <div className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
+          <Text variant="h4" className="font-semibold text-white">Historial de Ventas</Text>
+          <div className="flex space-x-2">
+            <select
+              value={timeRange}
+              onChange={(e) => setTimeRange(e.target.value)}
+              className="bg-black/20 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:ring-2 focus:ring-primary-500 outline-none"
+            >
+              <option value="7" className="bg-gray-900">Últimos 7 días</option>
+              <option value="30" className="bg-gray-900">Últimos 30 días</option>
+              <option value="90" className="bg-gray-900">Últimos 90 días</option>
+            </select>
+          </div>
         </div>
 
-        <div className="bg-white shadow rounded-lg p-6">
-          <div className="flex justify-between items-center mb-4">
-            <Text variant="h4" className="font-semibold">Ventas Recientes</Text>
-            <div className="flex space-x-2">
-              <select className="border border-gray-300 rounded px-3 py-2">
-                <option>Últimos 7 días</option>
-                <option>Últimos 30 días</option>
-                <option>Últimos 90 días</option>
-              </select>
-              <button className="bg-primary-600 text-white px-4 py-2 rounded hover:bg-primary-700">
-                Exportar
-              </button>
-            </div>
+        {loading ? (
+          <div className="text-center py-12">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-500 mx-auto mb-2"></div>
+            <p className="text-muted-foreground">Cargando ventas...</p>
           </div>
-          
+        ) : error ? (
+          <div className="text-center py-12 text-red-400">{error}</div>
+        ) : sales.length === 0 ? (
+          <div className="text-center py-12 text-muted-foreground">No se encontraron ventas en este periodo</div>
+        ) : (
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
+            <table className="min-w-full divide-y divide-white/10">
+              <thead className="bg-white/5">
                 <tr>
                   {tableColumns.map(column => (
-                    <th 
-                      key={column.key} 
-                      scope="col" 
-                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                    <th
+                      key={column.key}
+                      scope="col"
+                      className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider"
                     >
                       {column.title}
                     </th>
                   ))}
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {salesData.map(sale => (
-                  <tr key={sale.id}>
+              <tbody className="divide-y divide-white/10">
+                {sales.map(sale => (
+                  <tr key={sale.id} className="hover:bg-white/5 transition-colors">
                     {tableColumns.map(column => (
-                      <td key={`${sale.id}-${column.key}`} className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      <td key={`${sale.id}-${column.key}`} className="px-6 py-4 whitespace-nowrap text-sm text-white">
                         {column.render
                           ? column.render((sale as any)[column.key], sale)
                           : (sale as any)[column.key]}
@@ -86,9 +139,10 @@ const SalesReportsPage = () => {
               </tbody>
             </table>
           </div>
-        </div>
+        )}
       </div>
-    );
+    </div>
+  );
 };
 
 export default SalesReportsPage;
