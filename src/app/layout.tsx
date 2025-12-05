@@ -2,6 +2,7 @@ import './globals.css';
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import { ReactNode } from 'react';
+import { Analytics } from '@vercel/analytics/next';
 import RootInitializer from '@/components/templates/RootInitializer';
 import NotificationModal from '@/components/notifications/NotificationModal';
 import NotificationHistory from '@/components/notifications/NotificationHistory';
@@ -28,6 +29,7 @@ export default function RootLayout({
           {children}
           <NotificationModal />
         </RootInitializer>
+        <Analytics />
       </body>
     </html>
   );
