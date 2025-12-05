@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { updateSession } from '@/lib/supabase/middleware';
 import { PROTECTED_ROUTES, canAccessRoute, UserRole } from './src/types/roles';
 
 export async function middleware(request: NextRequest) {
@@ -13,17 +13,11 @@ export async function middleware(request: NextRequest) {
         return NextResponse.next();
     }
 
-    // Obtener token de la sesión
-    const supabase = createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    );
-
     try {
-        // Verificar si hay una sesión activa
-        const { data: { session }, error } = await supabase.auth.getSession();
+        // Actualizar sesión y obtener usuario
+        const { supabase, response, user } = await updateSession(request);
 
-        if (error || !session) {
+        if (!user) {
             // No hay sesión, redirigir a login
             const url = request.nextUrl.clone();
             url.pathname = '/login';
@@ -34,14 +28,14 @@ export async function middleware(request: NextRequest) {
         // Obtener rol del usuario desde metadata o DB
         let userRole: UserRole = 'cajero'; // Default
 
-        if (session.user.user_metadata?.role) {
-            userRole = session.user.user_metadata.role as UserRole;
+        if (user.user_metadata?.role) {
+            userRole = user.user_metadata.role as UserRole;
         } else {
             // Intentar obtener desde la base de datos
             const { data: userData } = await supabase
                 .from('users')
                 .select('role')
-                .eq('id', session.user.id)
+                .eq('id', user.id)
                 .single();
 
             if (userData?.role) {
@@ -67,8 +61,8 @@ export async function middleware(request: NextRequest) {
             return NextResponse.redirect(url);
         }
 
-        // Usuario tiene acceso, continuar
-        return NextResponse.next();
+        // Usuario tiene acceso, continuar con la respuesta actualizada (cookies)
+        return response;
 
     } catch (error) {
         console.error('Middleware error:', error);
