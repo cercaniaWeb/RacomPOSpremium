@@ -50,7 +50,7 @@ const HomePage = () => {
 
       <div className="max-w-7xl mx-auto relative z-10">
         <div className="text-center mb-16">
-          <h1 className="text-6xl md:text-7xl font-bold mb-6 tracking-tight">
+          <h1 className="text-4xl md:text-7xl font-bold mb-6 tracking-tight">
             <span className="text-gradient">Racom-POS</span>
           </h1>
           <p className="text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed">

@@ -48,6 +48,7 @@
         radial-gradient(circle at 100% 50%, rgba(236, 72, 153, 0.1), transparent 50%);
     background-attachment: fixed;
     font-feature-settings: "rlig" 1, "calt" 1;
+    overflow-x: hidden;
   }
 }
 
