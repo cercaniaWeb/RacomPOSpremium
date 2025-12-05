@@ -5,24 +5,20 @@ import ReportCard from '@/components/organisms/ReportCard';
 import Text from '@/components/atoms/Text';
 import ChatbotModal from '@/components/organisms/ChatbotModal';
 import { Sparkles } from 'lucide-react';
+import { useReportMetrics } from '@/hooks/useReportMetrics';
 
 const ReportsPage = () => {
   const [showChatbot, setShowChatbot] = useState(false);
+  const { metrics, changes, loading, error } = useReportMetrics();
 
-  // Mock user data
-  const user = {
-    name: 'Gerente',
-    status: 'online' as const,
-  };
-
-  // Mock report data
+  // Report data mapped from real metrics
   const reportData = [
     {
       id: 'sales',
       title: 'Ventas Totales',
-      value: '$12,450.00',
-      change: 12.5,
-      trend: 'up' as const,
+      value: loading ? 'Cargando...' : `$${metrics.totalSales.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+      change: changes.sales,
+      trend: (changes.sales >= 0 ? 'up' as const : 'down' as const),
       description: 'Comparado con el mes anterior',
       icon: (
         <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-primary-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -33,9 +29,9 @@ const ReportsPage = () => {
     {
       id: 'orders',
       title: 'Pedidos',
-      value: '56',
-      change: -2.3,
-      trend: 'down' as const,
+      value: loading ? 'Cargando...' : metrics.totalOrders.toString(),
+      change: changes.orders,
+      trend: (changes.orders >= 0 ? 'up' as const : 'down' as const),
       description: 'Comparado con el mes anterior',
       icon: (
         <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-primary-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -46,9 +42,9 @@ const ReportsPage = () => {
     {
       id: 'products-sold',
       title: 'Productos Vendidos',
-      value: '245',
-      change: 8.2,
-      trend: 'up' as const,
+      value: loading ? 'Cargando...' : metrics.totalProducts.toString(),
+      change: changes.products,
+      trend: (changes.products >= 0 ? 'up' as const : 'down' as const),
       description: 'Comparado con el mes anterior',
       icon: (
         <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-primary-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -59,9 +55,9 @@ const ReportsPage = () => {
     {
       id: 'avg-order',
       title: 'Pedido Promedio',
-      value: '$222.32',
-      change: 1.7,
-      trend: 'up' as const,
+      value: loading ? 'Cargando...' : `$${metrics.avgOrder.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+      change: changes.avgOrder,
+      trend: (changes.avgOrder >= 0 ? 'up' as const : 'down' as const),
       description: 'Comparado con el mes anterior',
       icon: (
         <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-primary-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -89,6 +85,16 @@ const ReportsPage = () => {
         </button>
       </div>
 
+      {/* Error State */}
+      {error && (
+        <div className="mb-6 p-4 bg-red-900/20 border border-red-500/50 rounded-lg">
+          <Text variant="body" className="text-red-400">
+            Error al cargar métricas: {error}
+          </Text>
+        </div>
+      )}
+
+      {/* Metrics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         {reportData.map((report) => (
           <ReportCard
@@ -104,10 +110,23 @@ const ReportsPage = () => {
         ))}
       </div>
 
+      {/* Charts Section */}
       <div className="glass rounded-xl border border-white/10 shadow p-6">
         <Text variant="h4" className="font-semibold mb-4">Gráficos de Ventas</Text>
         <div className="text-muted-foreground text-center py-12">
-          Aquí se mostrarían gráficos de ventas, productos más vendidos y tendencias.
+          {loading ? (
+            <div className="flex items-center justify-center gap-2">
+              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary-500"></div>
+              <span>Cargando datos...</span>
+            </div>
+          ) : (
+            <>
+              <p className="mb-2">📊 Datos del mes actual cargados correctamente</p>
+              <p className="text-sm">
+                {metrics.totalOrders} ventas • ${metrics.totalSales.toLocaleString('es-MX')} ingresos • {metrics.totalProducts} productos vendidos
+              </p>
+            </>
+          )}
         </div>
       </div>
 
