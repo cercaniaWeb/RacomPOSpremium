@@ -140,7 +140,6 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({ isOpen, onClose }) 
                         onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, name: e.target.value })}
                         required
                         placeholder="Tu nombre"
-                        icon={<User size={18} />}
                     />
 
                     <InputField
@@ -149,7 +148,6 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({ isOpen, onClose }) 
                         value={formData.email}
                         disabled
                         placeholder="correo@ejemplo.com"
-                        icon={<Mail size={18} />}
                         className="opacity-60 cursor-not-allowed"
                     />
 
@@ -159,7 +157,6 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({ isOpen, onClose }) 
                         value={formData.avatar_url}
                         onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, avatar_url: e.target.value })}
                         placeholder="https://ejemplo.com/foto.jpg"
-                        icon={<Camera size={18} />}
                     />
 
                     <div className="pt-2">
