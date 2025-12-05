@@ -149,7 +149,7 @@ const CategoriesPage = () => {
     return (
         <RoleGuard roles={['admin', 'grte']} redirectTo="/dashboard">
             <div>
-                <div className="flex justify-between items-center mb-6">
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
                     <div>
                         <h1 className="text-2xl font-bold text-white flex items-center gap-2">
                             <Tag className="text-blue-400" />
@@ -157,7 +157,7 @@ const CategoriesPage = () => {
                         </h1>
                         <p className="text-gray-400 text-sm">Administra las categorías y subcategorías de productos</p>
                     </div>
-                    <Button variant="primary" onClick={() => setShowModal(true)}>
+                    <Button variant="primary" onClick={() => setShowModal(true)} className="w-full md:w-auto justify-center">
                         <Plus size={20} className="mr-2" />
                         Nueva Categoría
                     </Button>
@@ -179,56 +179,58 @@ const CategoriesPage = () => {
 
                 {/* List */}
                 <div className="bg-gray-800/50 backdrop-blur-lg border border-gray-700 rounded-2xl overflow-hidden">
-                    <table className="w-full">
-                        <thead className="bg-white/5 border-b border-white/10">
-                            <tr className="text-left text-gray-300 text-sm">
-                                <th className="p-4 font-medium">Nombre</th>
-                                <th className="p-4 font-medium">Descripción</th>
-                                <th className="p-4 font-medium text-right">Acciones</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-white/5">
-                            {loading ? (
-                                <tr>
-                                    <td colSpan={3} className="p-8 text-center text-gray-500">Cargando...</td>
+                    <div className="overflow-x-auto">
+                        <table className="w-full">
+                            <thead className="bg-white/5 border-b border-white/10">
+                                <tr className="text-left text-gray-300 text-sm">
+                                    <th className="p-4 font-medium">Nombre</th>
+                                    <th className="p-4 font-medium">Descripción</th>
+                                    <th className="p-4 font-medium text-right">Acciones</th>
                                 </tr>
-                            ) : displayCategories.length === 0 ? (
-                                <tr>
-                                    <td colSpan={3} className="p-8 text-center text-gray-500">No se encontraron categorías</td>
-                                </tr>
-                            ) : (
-                                displayCategories.map((category: any) => (
-                                    <tr key={category.id} className="hover:bg-white/5 transition-colors">
-                                        <td className="p-4 text-white font-medium">
-                                            <div className="flex items-center" style={{ paddingLeft: `${(category.level || 0) * 24}px` }}>
-                                                {category.level > 0 && <ChevronRight size={16} className="text-gray-500 mr-1" />}
-                                                {category.level === 0 && <Folder size={16} className="text-blue-400 mr-2" />}
-                                                {category.name}
-                                                {category.level > 0 && <span className="ml-2 text-xs bg-gray-700 text-gray-300 px-1.5 py-0.5 rounded">Subcategoría</span>}
-                                            </div>
-                                        </td>
-                                        <td className="p-4 text-gray-400">{category.description || '-'}</td>
-                                        <td className="p-4 text-right">
-                                            <div className="flex justify-end gap-2">
-                                                <button
-                                                    onClick={() => handleEdit(category)}
-                                                    className="text-blue-400 hover:text-blue-300 p-2 hover:bg-blue-400/10 rounded-lg transition-colors"
-                                                >
-                                                    <Edit size={18} />
-                                                </button>
-                                                <button
-                                                    onClick={() => handleDelete(category.id)}
-                                                    className="text-red-400 hover:text-red-300 p-2 hover:bg-red-400/10 rounded-lg transition-colors"
-                                                >
-                                                    <Trash2 size={18} />
-                                                </button>
-                                            </div>
-                                        </td>
+                            </thead>
+                            <tbody className="divide-y divide-white/5">
+                                {loading ? (
+                                    <tr>
+                                        <td colSpan={3} className="p-8 text-center text-gray-500">Cargando...</td>
                                     </tr>
-                                ))
-                            )}
-                        </tbody>
-                    </table>
+                                ) : displayCategories.length === 0 ? (
+                                    <tr>
+                                        <td colSpan={3} className="p-8 text-center text-gray-500">No se encontraron categorías</td>
+                                    </tr>
+                                ) : (
+                                    displayCategories.map((category: any) => (
+                                        <tr key={category.id} className="hover:bg-white/5 transition-colors">
+                                            <td className="p-4 text-white font-medium">
+                                                <div className="flex items-center" style={{ paddingLeft: `${(category.level || 0) * 24}px` }}>
+                                                    {category.level > 0 && <ChevronRight size={16} className="text-gray-500 mr-1" />}
+                                                    {category.level === 0 && <Folder size={16} className="text-blue-400 mr-2" />}
+                                                    {category.name}
+                                                    {category.level > 0 && <span className="ml-2 text-xs bg-gray-700 text-gray-300 px-1.5 py-0.5 rounded">Subcategoría</span>}
+                                                </div>
+                                            </td>
+                                            <td className="p-4 text-gray-400">{category.description || '-'}</td>
+                                            <td className="p-4 text-right">
+                                                <div className="flex justify-end gap-2">
+                                                    <button
+                                                        onClick={() => handleEdit(category)}
+                                                        className="text-blue-400 hover:text-blue-300 p-2 hover:bg-blue-400/10 rounded-lg transition-colors"
+                                                    >
+                                                        <Edit size={18} />
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleDelete(category.id)}
+                                                        className="text-red-400 hover:text-red-300 p-2 hover:bg-red-400/10 rounded-lg transition-colors"
+                                                    >
+                                                        <Trash2 size={18} />
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
 
                 {/* Modal */}

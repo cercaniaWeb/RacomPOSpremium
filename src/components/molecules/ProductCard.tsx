@@ -59,7 +59,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
                 e.stopPropagation();
                 onEdit();
               }}
-              className="absolute top-2 right-2 p-2 bg-black/50 hover:bg-black/70 text-white rounded-full backdrop-blur-sm transition-colors z-20 opacity-0 group-hover:opacity-100"
+              className="absolute top-2 right-2 p-2 bg-black/50 hover:bg-black/70 text-white rounded-full backdrop-blur-sm transition-colors z-20"
               title="Editar precio"
             >
               <Edit size={16} />
@@ -79,7 +79,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
                 e.stopPropagation();
                 onEdit();
               }}
-              className="absolute top-2 right-2 p-2 bg-black/50 hover:bg-black/70 text-white rounded-full backdrop-blur-sm transition-colors z-20 opacity-0 group-hover:opacity-100"
+              className="absolute top-2 right-2 p-2 bg-black/50 hover:bg-black/70 text-white rounded-full backdrop-blur-sm transition-colors z-20"
               title="Editar precio"
             >
               <Edit size={16} />

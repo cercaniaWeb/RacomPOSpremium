@@ -177,15 +177,15 @@ const SmartReorderWidget: React.FC<SmartReorderWidgetProps> = ({ storeId, maxIte
                                         key={suggestion.id}
                                         className={`p-4 rounded-xl border ${getPriorityColor(suggestion.priority)} backdrop-blur-sm`}
                                     >
-                                        <div className="flex items-start justify-between">
-                                            <div className="flex-1">
+                                        <div className="flex flex-col sm:flex-row items-start justify-between gap-4">
+                                            <div className="flex-1 w-full">
                                                 <div className="flex items-center gap-2 mb-2">
                                                     {getPriorityIcon(suggestion.priority)}
                                                     <h4 className="font-semibold text-foreground">
                                                         {suggestion.product?.name || 'Producto'}
                                                     </h4>
                                                 </div>
-                                                <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm text-muted-foreground mb-3">
+                                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1 text-sm text-muted-foreground mb-3">
                                                     <div>Stock actual: <span className="text-foreground font-medium">{suggestion.current_stock}</span></div>
                                                     <div>Venta diaria: <span className="text-foreground font-medium">{suggestion.daily_sales_rate.toFixed(1)}</span></div>
                                                     <div>Se agota en: <span className="text-red-400 font-semibold">{suggestion.days_until_depletion} días</span></div>
@@ -195,16 +195,16 @@ const SmartReorderWidget: React.FC<SmartReorderWidgetProps> = ({ storeId, maxIte
                                                     <p className="text-xs text-muted-foreground italic">{suggestion.ai_reasoning}</p>
                                                 )}
                                             </div>
-                                            <div className="flex gap-2 ml-4">
+                                            <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto mt-2 sm:mt-0">
                                                 <button
                                                     onClick={() => markAsOrdered(suggestion.id)}
-                                                    className="px-3 py-1 bg-green-600 hover:bg-green-700 text-white text-xs rounded-lg transition-colors"
+                                                    className="w-full sm:w-auto px-3 py-2 bg-green-600 hover:bg-green-700 text-white text-xs rounded-lg transition-colors text-center"
                                                 >
                                                     Ordenar
                                                 </button>
                                                 <button
                                                     onClick={() => dismissSuggestion(suggestion.id)}
-                                                    className="px-3 py-1 bg-gray-600 hover:bg-gray-700 text-white text-xs rounded-lg transition-colors"
+                                                    className="w-full sm:w-auto px-3 py-2 bg-gray-600 hover:bg-gray-700 text-white text-xs rounded-lg transition-colors text-center"
                                                 >
                                                     Descartar
                                                 </button>

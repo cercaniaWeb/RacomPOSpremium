@@ -122,7 +122,7 @@ const ProductsPage = () => {
 
   return (
     <div>
-      <div className="flex justify-between items-center mb-6">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Mis Productos</h1>
           <p className="text-gray-400 text-sm mt-1">
@@ -130,7 +130,7 @@ const ProductsPage = () => {
             <span className="text-blue-400">{storeProducts.length} productos</span>
           </p>
         </div>
-        <Button variant="primary" onClick={() => router.push('/products/nuevo')}>
+        <Button variant="primary" onClick={() => router.push('/products/nuevo')} className="w-full md:w-auto justify-center">
           Añadir Producto
         </Button>
       </div>

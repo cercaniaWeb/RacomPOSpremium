@@ -120,12 +120,13 @@ const InventoryPage = () => {
 
   return (
     <div>
-      <div className="flex justify-between items-center mb-6">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
         <h1 className="text-2xl font-bold text-foreground">Gestión de Inventario</h1>
-        <div className="flex space-x-4">
+        <div className="flex flex-wrap gap-2 w-full md:w-auto">
           <Button
             variant="secondary"
             onClick={() => setShowFilters(!showFilters)}
+            className="flex-1 md:flex-none justify-center"
           >
             <Filter size={16} className="mr-2" />
             Filtrar
@@ -133,7 +134,7 @@ const InventoryPage = () => {
           <Button
             variant="secondary"
             onClick={() => router.push('/inventory/transferencias')}
-            className="mr-2"
+            className="flex-1 md:flex-none justify-center"
           >
             <ArrowLeftRight size={16} className="mr-2" />
             Transferencias
@@ -141,6 +142,7 @@ const InventoryPage = () => {
           <Button
             variant="primary"
             onClick={handleNewTransfer}
+            className="flex-1 md:flex-none justify-center"
           >
             <Plus size={16} className="mr-2" />
             Nueva Transferencia
@@ -198,12 +200,14 @@ const InventoryPage = () => {
         </div>
       )}
 
-      <div className="glass rounded-xl border border-white/10 shadow p-6">
-        <DataTable
-          data={filteredInventory}
-          columns={tableColumns}
-          showPagination={true}
-        />
+      <div className="glass rounded-xl border border-white/10 shadow p-6 overflow-hidden">
+        <div className="overflow-x-auto">
+          <DataTable
+            data={filteredInventory}
+            columns={tableColumns}
+            showPagination={true}
+          />
+        </div>
       </div>
 
       {/* Edit Modal */}

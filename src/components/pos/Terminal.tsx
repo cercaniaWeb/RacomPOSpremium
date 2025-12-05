@@ -127,20 +127,20 @@ export default function POSTerminal() {
   };
 
   return (
-    <div className="h-screen flex flex-col bg-gray-900 text-white">
+    <div className="h-[100dvh] flex flex-col bg-gray-900 text-white">
       {/* Header */}
       {/* Header */}
-      <header className="bg-gray-800 p-2 shadow-md flex justify-between items-center border-b border-gray-700">
-        <div className="flex items-center gap-4">
-          <h1 className="text-xl font-bold text-blue-400">Racom-POS</h1>
-          <div className="h-6 w-px bg-gray-700"></div>
-          <div className="flex items-center gap-2 px-3 py-1 bg-gray-800 rounded-full border border-gray-700">
+      <header className="bg-gray-800 p-2 shadow-md flex justify-between items-center border-b border-gray-700 sticky top-0 z-10">
+        <div className="flex items-center gap-2 md:gap-4">
+          <h1 className="text-lg md:text-xl font-bold text-blue-400">Racom-POS</h1>
+          <div className="h-6 w-px bg-gray-700 hidden md:block"></div>
+          <div className="hidden md:flex items-center gap-2 px-3 py-1 bg-gray-800 rounded-full border border-gray-700">
             <Store size={14} className="text-blue-400" />
             <span className="text-sm text-gray-300">
               {storeName || 'Cargando tienda...'}
             </span>
           </div>
-          {offline ? <WifiOff className="text-red-400" /> : <Wifi className="text-green-400" />}
+          {offline ? <WifiOff className="text-red-400 w-5 h-5" /> : <Wifi className="text-green-400 w-5 h-5" />}
 
           <button
             onClick={syncProducts}
@@ -160,31 +160,34 @@ export default function POSTerminal() {
             {isSubscribed ? <Bell size={16} /> : <BellOff size={16} />}
           </button>
         </div>
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 md:gap-4">
+          <div className="flex items-center gap-1 md:gap-2">
             <button
-              className="bg-gray-700 hover:bg-gray-600 text-white px-3 py-2 rounded-lg flex items-center gap-2 transition-colors text-sm font-bold"
+              className="bg-gray-700 hover:bg-gray-600 text-white p-2 md:px-3 md:py-2 rounded-lg flex items-center gap-2 transition-colors text-sm font-bold"
               onClick={() => setShowAgendarModal(true)}
+              title="Agendar"
             >
               <Calendar size={16} />
-              Agendar
+              <span className="hidden md:inline">Agendar</span>
             </button>
             <button
-              className="bg-gray-700 hover:bg-gray-600 text-white px-3 py-2 rounded-lg flex items-center gap-2 transition-colors text-sm font-bold"
+              className="bg-gray-700 hover:bg-gray-600 text-white p-2 md:px-3 md:py-2 rounded-lg flex items-center gap-2 transition-colors text-sm font-bold"
               onClick={() => setShowHistoryModal(true)}
+              title="Ver Ventas"
             >
               <History size={16} />
-              Ver Ventas
+              <span className="hidden md:inline">Ver Ventas</span>
             </button>
             <button
-              className="bg-red-900/30 hover:bg-red-900/50 text-red-400 border border-red-900/50 px-3 py-2 rounded-lg flex items-center gap-2 transition-colors text-sm font-bold"
+              className="bg-red-900/30 hover:bg-red-900/50 text-red-400 border border-red-900/50 p-2 md:px-3 md:py-2 rounded-lg flex items-center gap-2 transition-colors text-sm font-bold"
               onClick={() => setShowCloseRegisterModal(true)}
+              title="Cerrar Caja"
             >
               <Lock size={16} />
-              Cerrar Caja
+              <span className="hidden md:inline">Cerrar Caja</span>
             </button>
           </div>
-          <div className="text-sm text-gray-400">
+          <div className="text-sm text-gray-400 hidden md:block">
             {format(new Date(), 'PPP HH:mm')}
           </div>
           <button
@@ -200,7 +203,7 @@ export default function POSTerminal() {
         </div>
       </header>
 
-      <div className="flex-1 flex flex-col lg:flex-row overflow-hidden p-4 gap-4">
+      <div className="flex-1 flex flex-col lg:flex-row overflow-y-auto lg:overflow-hidden p-4 gap-4">
         {/* IZQUIERDA: Catálogo y Buscador */}
         <div className="flex-1 flex flex-col gap-4 min-w-0">
           {/* Barra Superior de Acción */}
@@ -240,7 +243,7 @@ export default function POSTerminal() {
           </div>
 
           {/* Grid de Productos */}
-          <div className="flex-1 overflow-y-auto grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 content-start pr-2">
+          <div className="h-[40vh] lg:h-auto lg:flex-1 overflow-y-auto grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 content-start pr-2">
             {searchResults?.map(product => (
               <button
                 key={product.id}
