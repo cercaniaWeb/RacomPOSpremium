@@ -213,15 +213,15 @@ export default function TransferManager() {
                 </div>
               </div>
               <div className="flex items-center gap-4">
-                <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase ${t.status === 'completed' ? 'bg-green-900 text-green-300' :
-                  t.status === 'in_transit' ? 'bg-blue-900 text-blue-300' :
+                <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase ${t.status === 'received' ? 'bg-green-900 text-green-300' :
+                  t.status === 'shipped' ? 'bg-blue-900 text-blue-300' :
                     'bg-yellow-900 text-yellow-300'
                   }`}>
-                  {t.status === 'in_transit' ? 'En Tránsito' : t.status === 'pending' ? 'Pendiente' : t.status}
+                  {t.status === 'shipped' ? 'En Tránsito' : t.status === 'requested' ? 'Solicitado' : t.status}
                 </span>
 
                 {/* Actions based on status and store */}
-                {t.status === 'pending' && storeId === t.origin_store_id && (
+                {t.status === 'requested' && storeId === t.origin_store_id && (
                   <button
                     onClick={() => handleShipTransfer(t)}
                     className="text-sm bg-blue-600 px-3 py-1 rounded hover:bg-blue-500 flex items-center gap-1"
@@ -230,7 +230,7 @@ export default function TransferManager() {
                   </button>
                 )}
 
-                {t.status === 'in_transit' && storeId === t.dest_store_id && (
+                {t.status === 'shipped' && storeId === t.dest_store_id && (
                   <button
                     onClick={() => {
                       setSelectedTransferId(t.id!);
