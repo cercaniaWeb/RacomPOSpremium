@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { User } from '@supabase/supabase-js'
 import { signout } from '@/app/auth/actions'
-import { User as UserIcon, LogOut } from 'lucide-react'
+import { User as UserIcon, LogOut, Package } from 'lucide-react'
 
 export function UserMenu({ user }: { user: User | null }) {
     const [isOpen, setIsOpen] = useState(false)
@@ -38,6 +38,13 @@ export function UserMenu({ user }: { user: User | null }) {
                         <p className="text-xs text-gray-500">Conectado como</p>
                         <p className="text-sm font-bold truncate">{user.email}</p>
                     </div>
+                    <a
+                        href="/orders"
+                        className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+                    >
+                        <Package size={14} />
+                        Mis Pedidos
+                    </a>
                     <button
                         onClick={() => signout()}
                         className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
