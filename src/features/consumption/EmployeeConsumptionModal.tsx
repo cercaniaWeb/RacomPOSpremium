@@ -6,6 +6,7 @@ import { useEmployees } from '@/hooks/useEmployees';
 import { useStoreContext } from '@/hooks/useStoreContext';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useAuthStore } from '@/store/authStore';
+import { useSettingsStore } from '@/store/settingsStore';
 
 interface Props {
   isOpen: boolean;
@@ -78,7 +79,8 @@ export default function EmployeeConsumptionModal({ isOpen, onClose }: Props) {
   const totalCost = cart.reduce((acc, item) => acc + (item.cost * item.quantity), 0);
 
   const authorizeAndSave = async () => {
-    if (pin !== '1234') { // Mock PIN - en producción validar contra base de datos
+    const currentPin = useSettingsStore.getState().supervisorPin;
+    if (pin !== currentPin) {
       alert('PIN de supervisor incorrecto');
       return;
     }

@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import InputField from '@/components/molecules/InputField';
 import Button from '@/components/atoms/Button';
-import { Plus, Store, Scale, Camera, Receipt, Bell, Calendar, CheckCircle, Trash2 } from 'lucide-react';
+import { Plus, Store, Scale, Camera, Receipt, Bell, Calendar, CheckCircle, Trash2, Banknote, Lock } from 'lucide-react';
 import { useSettingsStore } from '@/store/settingsStore';
 import { useAuthStore } from '@/store/authStore';
 import { useRouter } from 'next/navigation';
@@ -194,6 +194,12 @@ const SettingsPage = () => {
               </li>
               <li className={`border-b border-white/10 pb-2 cursor-pointer ${activeSection === 'reminders' ? 'text-primary font-bold' : 'text-muted-foreground hover:text-foreground'}`} onClick={() => setActiveSection('reminders')}>
                 Recordatorios
+              </li>
+              <li className={`border-b border-white/10 pb-2 cursor-pointer ${activeSection === 'bank' ? 'text-primary font-bold' : 'text-muted-foreground hover:text-foreground'}`} onClick={() => setActiveSection('bank')}>
+                Datos Bancarios
+              </li>
+              <li className={`border-b border-white/10 pb-2 cursor-pointer ${activeSection === 'security' ? 'text-primary font-bold' : 'text-muted-foreground hover:text-foreground'}`} onClick={() => setActiveSection('security')}>
+                Seguridad
               </li>
             </ul>
           </div>
@@ -553,8 +559,8 @@ const SettingsPage = () => {
                       <div
                         key={reminder.id}
                         className={`p-4 rounded-lg border flex items-start justify-between group transition-all ${reminder.is_completed
-                            ? 'bg-white/5 border-white/5 opacity-60'
-                            : 'bg-white/5 border-white/10 hover:border-primary/50'
+                          ? 'bg-white/5 border-white/5 opacity-60'
+                          : 'bg-white/5 border-white/10 hover:border-primary/50'
                           }`}
                       >
                         <div className="flex items-start gap-3">
@@ -587,6 +593,75 @@ const SettingsPage = () => {
                       </div>
                     ))
                   )}
+                </div>
+              </div>
+            )}
+
+            {activeSection === 'bank' && (
+              <div className="space-y-6">
+                <div>
+                  <h3 className="text-lg font-medium mb-4 text-foreground flex items-center gap-2">
+                    <Banknote className="text-primary" size={20} />
+                    Configuración de Transferencias
+                  </h3>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Estos datos se mostrarán al cliente cuando seleccione "Transferencia" como método de pago.
+                  </p>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <InputField
+                      label="Nombre del Banco"
+                      value={useSettingsStore.getState().bankConfig.bankName}
+                      onChange={(e) => useSettingsStore.getState().updateBankConfig({ bankName: e.target.value })}
+                      placeholder="Ej. BBVA"
+                    />
+                    <InputField
+                      label="Beneficiario"
+                      value={useSettingsStore.getState().bankConfig.beneficiary}
+                      onChange={(e) => useSettingsStore.getState().updateBankConfig({ beneficiary: e.target.value })}
+                      placeholder="Nombre del titular"
+                    />
+                    <InputField
+                      label="Número de Cuenta"
+                      value={useSettingsStore.getState().bankConfig.accountNumber}
+                      onChange={(e) => useSettingsStore.getState().updateBankConfig({ accountNumber: e.target.value })}
+                      placeholder="10 dígitos"
+                    />
+                    <InputField
+                      label="CLABE Interbancaria"
+                      value={useSettingsStore.getState().bankConfig.clabe}
+                      onChange={(e) => useSettingsStore.getState().updateBankConfig({ clabe: e.target.value })}
+                      placeholder="18 dígitos"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {activeSection === 'security' && (
+              <div className="space-y-6">
+                <div>
+                  <h3 className="text-lg font-medium mb-4 text-foreground flex items-center gap-2">
+                    <Lock className="text-primary" size={20} />
+                    Seguridad
+                  </h3>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Configura el PIN de supervisor para autorizar consumos de empleados y otras acciones sensibles.
+                  </p>
+
+                  <div className="max-w-md">
+                    <InputField
+                      label="PIN de Supervisor"
+                      type="text"
+                      maxLength={4}
+                      value={useSettingsStore.getState().supervisorPin}
+                      onChange={(e) => useSettingsStore.getState().setSupervisorPin(e.target.value)}
+                      placeholder="4 dígitos"
+                    />
+                    <p className="text-xs text-gray-500 mt-2">
+                      Este PIN se solicitará al registrar consumos de empleados.
+                    </p>
+                  </div>
                 </div>
               </div>
             )}

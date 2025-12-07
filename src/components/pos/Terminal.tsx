@@ -5,7 +5,7 @@ import { db, CartItem, ProductLocal } from '@/lib/db';
 import { useScale } from '@/hooks/useScale';
 import { useAuthStore } from '@/store/authStore';
 import { useRouter } from 'next/navigation';
-import { ShoppingCart, Search, Scale, Trash2, CreditCard, Banknote, Coffee, Wifi, WifiOff, LogOut, Camera, RefreshCw, MessageSquare } from 'lucide-react';
+import { ShoppingCart, Search, Scale, Trash2, CreditCard, Banknote, Coffee, Wifi, WifiOff, LogOut, Camera, RefreshCw, MessageSquare, ChevronLeft, ChevronRight } from 'lucide-react';
 import ScaleControl from './ScaleControl';
 import EmployeeConsumptionModal from '@/features/consumption/EmployeeConsumptionModal';
 import AgendarModal from '@/components/organisms/AgendarModal';
@@ -24,11 +24,16 @@ import TicketPreviewModal from './TicketPreviewModal';
 import { useProductSync } from '@/hooks/useProductSync';
 import { useStoreContext } from '@/hooks/useStoreContext';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
-import { Bell, BellOff, ChefHat } from 'lucide-react';
+import { Bell, BellOff, Bike } from 'lucide-react';
 import KitchenMonitor from './KitchenMonitor';
 
 export default function POSTerminal() {
   const [query, setQuery] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
+  const [showBulkOnly, setShowBulkOnly] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 12; // Adjusted for grid size
+
   const [showConsumptionModal, setShowConsumptionModal] = useState(false);
   const [showAgendarModal, setShowAgendarModal] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
@@ -94,15 +99,67 @@ export default function POSTerminal() {
     };
   }, []);
 
-  // Búsqueda en tiempo real sobre Dexie (Local DB)
-  const searchResults = useLiveQuery(
-    () => db.products
-      .where('name').startsWithIgnoreCase(query)
-      .or('sku').equals(query)
-      .limit(10)
-      .toArray(),
-    [query]
-  );
+  // Fetch Categories
+  const categories = useLiveQuery(async () => {
+    const allCategories = await db.categories.toArray();
+    return allCategories.filter(c => c.is_active);
+  }) || [];
+
+  // Búsqueda en tiempo real sobre Dexie (Local DB) con filtros y paginación
+  const searchResults = useLiveQuery(async () => {
+    let collection = db.products.toCollection();
+
+    if (query) {
+      collection = db.products
+        .where('name').startsWithIgnoreCase(query)
+        .or('sku').equals(query);
+    } else if (selectedCategory) {
+      collection = db.products.where('category_id').equals(selectedCategory);
+    }
+
+    let products = await collection.toArray();
+
+    // Apply additional filters in memory (Dexie has limited complex filtering)
+    if (showBulkOnly) {
+      products = products.filter(p => p.is_weighted);
+    }
+
+    // If query is present, we might have duplicates from the OR clause, but Dexie handles unique keys.
+    // However, if we didn't use OR, we are fine.
+    // The OR clause above returns a Collection, but we can't chain .filter() on it easily for boolean fields mixed with index queries in a simple way without compound indices.
+    // So filtering in memory for 'showBulkOnly' is acceptable for reasonable dataset sizes.
+
+    // Pagination
+    const start = (currentPage - 1) * itemsPerPage;
+    const end = start + itemsPerPage;
+    return products.slice(start, end);
+  }, [query, selectedCategory, showBulkOnly, currentPage]);
+
+  // Count total items for pagination
+  const totalItems = useLiveQuery(async () => {
+    let collection = db.products.toCollection();
+
+    if (query) {
+      collection = db.products
+        .where('name').startsWithIgnoreCase(query)
+        .or('sku').equals(query);
+    } else if (selectedCategory) {
+      collection = db.products.where('category_id').equals(selectedCategory);
+    }
+
+    let products = await collection.toArray();
+    if (showBulkOnly) {
+      products = products.filter(p => p.is_weighted);
+    }
+    return products.length;
+  }, [query, selectedCategory, showBulkOnly]) || 0;
+
+  const totalPages = Math.ceil(totalItems / itemsPerPage);
+
+  // Reset page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [query, selectedCategory, showBulkOnly]);
 
   // ... (rest of handlers)
 
@@ -204,10 +261,10 @@ export default function POSTerminal() {
             <button
               className="bg-orange-600 hover:bg-orange-500 text-white p-2 md:px-3 md:py-2 rounded-lg flex items-center gap-2 transition-colors text-sm font-bold"
               onClick={() => setShowKitchenMonitor(true)}
-              title="Monitor Cocina"
+              title="Delivery"
             >
-              <ChefHat size={16} />
-              <span className="hidden md:inline">Cocina</span>
+              <Bike size={16} />
+              <span className="hidden md:inline">Delivery</span>
             </button>
             <button
               className="bg-red-900/30 hover:bg-red-900/50 text-red-400 border border-red-900/50 p-2 md:px-3 md:py-2 rounded-lg flex items-center gap-2 transition-colors text-sm font-bold"
@@ -270,6 +327,52 @@ export default function POSTerminal() {
             </div>
           </div>
 
+          {/* Filters Bar */}
+          <div className="flex gap-2 overflow-x-auto pb-2 custom-scrollbar">
+            <button
+              onClick={() => {
+                setSelectedCategory(null);
+                setShowBulkOnly(false);
+                setQuery('');
+              }}
+              className={`px-4 py-2 rounded-full whitespace-nowrap transition-colors border ${!selectedCategory && !showBulkOnly && !query
+                ? 'bg-blue-600 text-white border-blue-600'
+                : 'bg-gray-800 text-gray-400 border-gray-700 hover:border-gray-600'
+                }`}
+            >
+              Todos
+            </button>
+
+            <button
+              onClick={() => setShowBulkOnly(!showBulkOnly)}
+              className={`px-4 py-2 rounded-full whitespace-nowrap transition-colors border flex items-center gap-2 ${showBulkOnly
+                ? 'bg-orange-600 text-white border-orange-600'
+                : 'bg-gray-800 text-gray-400 border-gray-700 hover:border-gray-600'
+                }`}
+            >
+              <Scale size={16} />
+              Granel
+            </button>
+
+            <div className="w-px bg-gray-700 mx-2 h-8 self-center" />
+
+            {categories.map(cat => (
+              <button
+                key={cat.id}
+                onClick={() => {
+                  setSelectedCategory(cat.id === selectedCategory ? null : cat.id!);
+                  setQuery('');
+                }}
+                className={`px-4 py-2 rounded-full whitespace-nowrap transition-colors border ${selectedCategory === cat.id
+                  ? 'bg-blue-600 text-white border-blue-600'
+                  : 'bg-gray-800 text-gray-400 border-gray-700 hover:border-gray-600'
+                  }`}
+              >
+                {cat.name}
+              </button>
+            ))}
+          </div>
+
           {/* Grid de Productos */}
           <div className="h-[40vh] lg:h-auto lg:flex-1 overflow-y-auto grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 content-start pr-2">
             {searchResults?.map(product => (
@@ -299,6 +402,29 @@ export default function POSTerminal() {
               </button>
             ))}
           </div>
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="flex justify-center items-center gap-4 py-2">
+              <button
+                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+                className="px-4 py-2 bg-gray-800 rounded-lg disabled:opacity-50 hover:bg-gray-700 transition-colors"
+              >
+                Anterior
+              </button>
+              <span className="text-gray-400 text-sm">
+                Página {currentPage} de {totalPages}
+              </span>
+              <button
+                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                disabled={currentPage === totalPages}
+                className="px-4 py-2 bg-gray-800 rounded-lg disabled:opacity-50 hover:bg-gray-700 transition-colors"
+              >
+                Siguiente
+              </button>
+            </div>
+          )}
         </div>
 
         {/* DERECHA: Carrito y Totales */}

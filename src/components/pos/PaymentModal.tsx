@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useModal } from '@/hooks/useModal';
 import { CartItem } from '@/store/posStore';
+import { useSettingsStore } from '@/store/settingsStore';
 import { X, CreditCard, Banknote, Delete } from 'lucide-react';
 import Button from '@/components/atoms/Button';
 
@@ -9,7 +10,7 @@ interface PaymentModalProps {
     onClose: () => void;
     cart: CartItem[];
     total: number;
-    onProcessPayment: (method: 'cash' | 'card', amountPaid?: number, commission?: number) => Promise<void>;
+    onProcessPayment: (method: 'cash' | 'card' | 'transfer', amountPaid?: number, commission?: number) => Promise<void>;
 }
 
 const PaymentModal: React.FC<PaymentModalProps> = ({
@@ -19,7 +20,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
     total,
     onProcessPayment
 }) => {
-    const [paymentMethod, setPaymentMethod] = useState<'cash' | 'card'>('cash');
+    const [paymentMethod, setPaymentMethod] = useState<'cash' | 'card' | 'transfer'>('cash');
     const [cashAmount, setCashAmount] = useState<string>('');
     const [isProcessing, setIsProcessing] = useState(false);
 
@@ -41,7 +42,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
     const cardCommission = total * 0.04;
     const finalTotal = paymentMethod === 'card' ? total + cardCommission : total;
     const change = paymentMethod === 'cash' && cashAmount ? parseFloat(cashAmount) - finalTotal : 0;
-    const isValidPayment = paymentMethod === 'card' || (paymentMethod === 'cash' && parseFloat(cashAmount || '0') >= finalTotal);
+    const isValidPayment = paymentMethod === 'card' || paymentMethod === 'transfer' || (paymentMethod === 'cash' && parseFloat(cashAmount || '0') >= finalTotal);
 
     const handleNumPadClick = (value: string) => {
         if (value === 'backspace') {
@@ -159,6 +160,16 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
                                 <CreditCard size={32} />
                                 <span className="font-bold text-lg">Tarjeta (+4%)</span>
                             </button>
+                            <button
+                                onClick={() => setPaymentMethod('transfer')}
+                                className={`p-6 rounded-xl border-2 flex flex-col items-center gap-2 transition-all ${paymentMethod === 'transfer'
+                                    ? 'border-purple-500 bg-purple-500/10 text-purple-400'
+                                    : 'border-gray-700 bg-gray-800 text-gray-400 hover:border-gray-600'
+                                    }`}
+                            >
+                                <Banknote size={32} />
+                                <span className="font-bold text-lg">Transferencia</span>
+                            </button>
                         </div>
 
                         {/* Cash Input Area */}
@@ -234,6 +245,48 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
                                     <p className="text-4xl font-bold text-white font-mono mt-2">
                                         ${finalTotal.toFixed(2)}
                                     </p>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Transfer Info */}
+                        {paymentMethod === 'transfer' && (
+                            <div className="flex-1 flex flex-col gap-4">
+                                <div className="bg-purple-900/20 border border-purple-500/30 rounded-xl p-6">
+                                    <h3 className="text-lg font-bold text-purple-300 mb-4 flex items-center gap-2">
+                                        <Banknote size={20} />
+                                        Datos para Transferencia
+                                    </h3>
+                                    <div className="space-y-3 text-sm">
+                                        <div className="flex justify-between border-b border-purple-500/20 pb-2">
+                                            <span className="text-gray-400">Banco:</span>
+                                            <span className="text-white font-medium text-right">{useSettingsStore.getState().bankConfig.bankName}</span>
+                                        </div>
+                                        <div className="flex justify-between border-b border-purple-500/20 pb-2">
+                                            <span className="text-gray-400">Beneficiario:</span>
+                                            <span className="text-white font-medium text-right">{useSettingsStore.getState().bankConfig.beneficiary}</span>
+                                        </div>
+                                        <div className="flex justify-between border-b border-purple-500/20 pb-2">
+                                            <span className="text-gray-400">Cuenta:</span>
+                                            <span className="text-white font-mono text-right">{useSettingsStore.getState().bankConfig.accountNumber}</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span className="text-gray-400">CLABE:</span>
+                                            <span className="text-white font-mono text-right">{useSettingsStore.getState().bankConfig.clabe}</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="flex-1 flex items-center justify-center text-center p-4 bg-gray-800/30 rounded-xl border border-dashed border-gray-700">
+                                    <div>
+                                        <p className="text-gray-400 mb-2">Monto a Transferir:</p>
+                                        <p className="text-4xl font-bold text-white font-mono">
+                                            ${finalTotal.toFixed(2)}
+                                        </p>
+                                        <p className="text-xs text-gray-500 mt-2">
+                                            Confirme la recepción de la transferencia antes de completar la venta.
+                                        </p>
+                                    </div>
                                 </div>
                             </div>
                         )}

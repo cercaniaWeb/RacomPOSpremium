@@ -50,8 +50,20 @@ const ProductsPage = () => {
   // Combine products with inventory using the pricing utility
   const productsWithPricing = React.useMemo(() => calculateProductsPricing(products, inventory), [products, inventory]);
 
-  // Filter to show only products that have inventory in this store
-  const storeProducts = productsWithPricing.filter(p => p.inventory !== undefined);
+  // Filter to show only products that have inventory in this store AND match search query
+  const storeProducts = productsWithPricing.filter(p => {
+    const hasInventory = p.inventory !== undefined;
+    if (!hasInventory) return false;
+
+    if (!searchQuery) return true;
+
+    const query = searchQuery.toLowerCase();
+    return (
+      p.name.toLowerCase().includes(query) ||
+      p.barcode?.toLowerCase().includes(query) ||
+      p.sku?.toLowerCase().includes(query)
+    );
+  });
 
   const handleLogout = async () => {
     await logout();

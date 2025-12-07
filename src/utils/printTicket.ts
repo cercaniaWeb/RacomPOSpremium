@@ -93,7 +93,7 @@ export const generateTicketHtml = ({ sale, items, config, user }: PrintTicketPar
           </div>
         ` : ''}
         <div class="flex justify-between" style="display: flex; justify-content: space-between; font-size: 11px; margin-top: 2px;">
-          <span>Pago (${sale.payment_method === 'cash' ? 'Efectivo' : 'Tarjeta'}):</span>
+          <span>Pago (${sale.payment_method === 'cash' ? 'Efectivo' : sale.payment_method === 'transfer' ? 'Transferencia Bancaria' : 'Tarjeta'}):</span>
           <span>$${sale.total_amount.toFixed(2)}</span>
         </div>
       </div>

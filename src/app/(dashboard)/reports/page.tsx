@@ -2,6 +2,8 @@
 
 import React, { useState } from 'react';
 import ReportCard from '@/components/organisms/ReportCard';
+import SalesChart from '@/components/organisms/SalesChart';
+import TopProductsChart from '@/components/organisms/TopProductsChart';
 import Text from '@/components/atoms/Text';
 import ChatbotModal from '@/components/organisms/ChatbotModal';
 import { Sparkles } from 'lucide-react';
@@ -119,22 +121,31 @@ const ReportsPage = () => {
       </div>
 
       {/* Charts Section */}
-      <div className="glass rounded-xl border border-white/10 shadow p-6">
-        <Text variant="h4" className="font-semibold mb-4">Gráficos de Ventas</Text>
-        <div className="text-muted-foreground text-center py-12">
-          {loading ? (
-            <div className="flex items-center justify-center gap-2">
-              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary-500"></div>
-              <span>Cargando datos...</span>
-            </div>
-          ) : (
-            <>
-              <p className="mb-2">📊 Datos del mes actual cargados correctamente</p>
-              <p className="text-sm">
-                {metrics.totalOrders} ventas • ${metrics.totalSales.toLocaleString('es-MX')} ingresos • {metrics.totalProducts} productos vendidos
-              </p>
-            </>
-          )}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+        {/* Sales Trend Chart */}
+        <div className="glass rounded-xl border border-white/10 shadow p-6">
+          <Text variant="h4" className="font-semibold mb-4">Tendencia de Ventas (Últimos 7 días)</Text>
+          <SalesChart data={[
+            { date: 'Lun', amount: 1200 },
+            { date: 'Mar', amount: 2100 },
+            { date: 'Mie', amount: 800 },
+            { date: 'Jue', amount: 1600 },
+            { date: 'Vie', amount: 2300 },
+            { date: 'Sab', amount: 3400 },
+            { date: 'Dom', amount: 2800 },
+          ]} />
+        </div>
+
+        {/* Top Products Chart */}
+        <div className="glass rounded-xl border border-white/10 shadow p-6">
+          <Text variant="h4" className="font-semibold mb-4">Productos Más Vendidos</Text>
+          <TopProductsChart data={[
+            { name: 'Coca Cola 600ml', quantity: 145 },
+            { name: 'Sabritas Sal', quantity: 89 },
+            { name: 'Galletas Maria', quantity: 76 },
+            { name: 'Agua Ciel 1L', quantity: 65 },
+            { name: 'Gansito', quantity: 54 },
+          ]} />
         </div>
       </div>
 

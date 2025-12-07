@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase/client';
-import { X, RefreshCw, CheckCircle, Clock, ChefHat, Truck } from 'lucide-react';
+import { X, RefreshCw, CheckCircle, Clock, ShoppingBag, Truck, ClipboardList } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 
@@ -18,6 +18,9 @@ interface Order {
     created_at: string;
     notes: string;
     source: string;
+    delivery_type?: 'pickup' | 'delivery';
+    delivery_address?: string;
+    payment_status?: string;
 }
 
 const KitchenMonitor: React.FC<KitchenMonitorProps> = ({ isOpen, onClose }) => {
@@ -34,7 +37,7 @@ const KitchenMonitor: React.FC<KitchenMonitorProps> = ({ isOpen, onClose }) => {
             .order('created_at', { ascending: true });
 
         if (error) {
-            console.error('Error fetching kitchen orders:', error);
+            console.error('Error fetching orders:', error);
         } else {
             setOrders(data || []);
         }
@@ -44,8 +47,28 @@ const KitchenMonitor: React.FC<KitchenMonitorProps> = ({ isOpen, onClose }) => {
     useEffect(() => {
         if (isOpen) {
             fetchOrders();
-            const interval = setInterval(fetchOrders, 30000); // Poll every 30s
-            return () => clearInterval(interval);
+
+            // Realtime Subscription
+            const channel = supabase
+                .channel('kitchen-monitor-changes')
+                .on(
+                    'postgres_changes',
+                    {
+                        event: '*', // Listen for INSERT and UPDATE
+                        schema: 'public',
+                        table: 'sales',
+                        filter: "source=eq.Manda2"
+                    },
+                    (payload) => {
+                        console.log('Realtime update received:', payload);
+                        fetchOrders(); // Refresh orders on any change
+                    }
+                )
+                .subscribe();
+
+            return () => {
+                supabase.removeChannel(channel);
+            };
         }
     }, [isOpen]);
 
@@ -58,9 +81,8 @@ const KitchenMonitor: React.FC<KitchenMonitorProps> = ({ isOpen, onClose }) => {
         if (error) {
             console.error('Error updating status:', error);
             alert('Error al actualizar estado');
-        } else {
-            fetchOrders();
         }
+        // No need to manually fetchOrders here as Realtime will trigger it
     };
 
     if (!isOpen) return null;
@@ -81,10 +103,10 @@ const KitchenMonitor: React.FC<KitchenMonitorProps> = ({ isOpen, onClose }) => {
                 <div className="p-6 border-b border-gray-800 flex justify-between items-center bg-gray-900">
                     <div className="flex items-center gap-4">
                         <div className="bg-orange-500/20 p-3 rounded-xl">
-                            <ChefHat className="text-orange-500 w-8 h-8" />
+                            <ClipboardList className="text-orange-500 w-8 h-8" />
                         </div>
                         <div>
-                            <h2 className="text-2xl font-bold text-white">Monitor de Cocina</h2>
+                            <h2 className="text-2xl font-bold text-white">Monitor de Pedidos</h2>
                             <p className="text-gray-400 text-sm">Pedidos de Manda2 en tiempo real</p>
                         </div>
                     </div>
@@ -109,15 +131,15 @@ const KitchenMonitor: React.FC<KitchenMonitorProps> = ({ isOpen, onClose }) => {
                 <div className="flex-1 overflow-y-auto p-6 bg-gray-950/50">
                     {orders.length === 0 ? (
                         <div className="h-full flex flex-col items-center justify-center text-gray-500 opacity-50">
-                            <ChefHat className="w-24 h-24 mb-4" />
+                            <ShoppingBag className="w-24 h-24 mb-4" />
                             <p className="text-xl font-medium">No hay pedidos pendientes</p>
                         </div>
                     ) : (
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                             {orders.map((order) => (
                                 <div key={order.id} className={`bg-gray-900 border-2 rounded-2xl overflow-hidden flex flex-col shadow-lg transition-all ${order.fulfillment_status === 'pending' ? 'border-red-500/50 shadow-red-900/20' :
-                                        order.fulfillment_status === 'preparing' ? 'border-yellow-500/50 shadow-yellow-900/20' :
-                                            'border-green-500/50 shadow-green-900/20'
+                                    order.fulfillment_status === 'preparing' ? 'border-yellow-500/50 shadow-yellow-900/20' :
+                                        'border-green-500/50 shadow-green-900/20'
                                     }`}>
                                     {/* Card Header */}
                                     <div className="p-4 bg-gray-800/50 flex justify-between items-start border-b border-gray-800">
@@ -136,6 +158,37 @@ const KitchenMonitor: React.FC<KitchenMonitorProps> = ({ isOpen, onClose }) => {
 
                                     {/* Card Body */}
                                     <div className="p-4 flex-1">
+                                        {/* Delivery Info */}
+                                        <div className="mb-4">
+                                            {order.delivery_type === 'delivery' ? (
+                                                <div className="bg-orange-500/10 border border-orange-500/30 rounded-lg p-3">
+                                                    <div className="flex items-center text-orange-400 font-bold mb-1">
+                                                        <Truck className="w-4 h-4 mr-2" />
+                                                        Delivery
+                                                    </div>
+                                                    <p className="text-sm text-gray-300">{order.delivery_address || 'Sin dirección'}</p>
+                                                </div>
+                                            ) : order.delivery_type === 'pickup' ? (
+                                                <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-3 flex items-center text-blue-400 font-bold">
+                                                    <ShoppingBag className="w-4 h-4 mr-2" />
+                                                    Recoger en Tienda
+                                                </div>
+                                            ) : null}
+                                        </div>
+
+                                        {/* Payment Status */}
+                                        <div className="mb-4">
+                                            {order.payment_status === 'paid' ? (
+                                                <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-2 text-center text-green-400 font-bold text-sm uppercase">
+                                                    Pagado
+                                                </div>
+                                            ) : (
+                                                <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-2 text-center text-red-400 font-bold text-sm uppercase animate-pulse">
+                                                    Cobrar: ${order.total.toFixed(2)}
+                                                </div>
+                                            )}
+                                        </div>
+
                                         <div className="text-sm text-gray-300 mb-4 whitespace-pre-wrap font-mono bg-black/20 p-3 rounded-lg border border-gray-800">
                                             {order.notes}
                                         </div>
@@ -152,7 +205,7 @@ const KitchenMonitor: React.FC<KitchenMonitorProps> = ({ isOpen, onClose }) => {
                                                 onClick={() => updateStatus(order.id, 'preparing')}
                                                 className="w-full py-3 bg-yellow-600 hover:bg-yellow-500 text-white rounded-xl font-bold transition-colors flex items-center justify-center"
                                             >
-                                                <ChefHat className="w-5 h-5 mr-2" />
+                                                <ClipboardList className="w-5 h-5 mr-2" />
                                                 Empezar a Preparar
                                             </button>
                                         )}
