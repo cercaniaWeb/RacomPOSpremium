@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useModal } from '@/hooks/useModal';
 import { CartItem } from '@/store/posStore';
 import { useSettingsStore } from '@/store/settingsStore';
-import { X, CreditCard, Banknote, Delete } from 'lucide-react';
+import { X, CreditCard, Banknote, Delete, Split } from 'lucide-react';
 import Button from '@/components/atoms/Button';
 
 interface PaymentModalProps {
@@ -10,7 +10,7 @@ interface PaymentModalProps {
     onClose: () => void;
     cart: CartItem[];
     total: number;
-    onProcessPayment: (method: 'cash' | 'card' | 'transfer', amountPaid?: number, commission?: number) => Promise<void>;
+    onProcessPayment: (method: any, amountPaid?: number, commission?: number) => Promise<void>;
 }
 
 const PaymentModal: React.FC<PaymentModalProps> = ({
@@ -20,8 +20,10 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
     total,
     onProcessPayment
 }) => {
-    const [paymentMethod, setPaymentMethod] = useState<'cash' | 'card' | 'transfer'>('cash');
+    const [paymentMethod, setPaymentMethod] = useState<'cash' | 'card' | 'transfer' | 'split'>('cash');
     const [cashAmount, setCashAmount] = useState<string>('');
+    const [splitCashAmount, setSplitCashAmount] = useState<string>('');
+    const [splitCardAmount, setSplitCardAmount] = useState<string>('');
     const [isProcessing, setIsProcessing] = useState(false);
 
     const { modalRef, handleBackdropClick } = useModal({
@@ -35,39 +37,96 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
         if (isOpen) {
             setPaymentMethod('cash');
             setCashAmount('');
+            setSplitCashAmount('');
+            setSplitCardAmount('');
             setIsProcessing(false);
         }
     }, [isOpen]);
 
-    const cardCommission = total * 0.04;
-    const finalTotal = paymentMethod === 'card' ? total + cardCommission : total;
+    // Calculate totals and commissions
+    const cardCommissionRate = 0.04;
+
+    // For normal card payment
+    const standardCardCommission = total * cardCommissionRate;
+
+    // For split payment
+    const splitCash = parseFloat(splitCashAmount || '0');
+    const splitCard = parseFloat(splitCardAmount || '0');
+    const splitCardCommission = splitCard * cardCommissionRate;
+
+    // Determine final total based on method
+    let finalTotal = total;
+    if (paymentMethod === 'card') {
+        finalTotal = total + standardCardCommission;
+    } else if (paymentMethod === 'split') {
+        finalTotal = total + splitCardCommission;
+    }
+
+    // Validation
     const change = paymentMethod === 'cash' && cashAmount ? parseFloat(cashAmount) - finalTotal : 0;
-    const isValidPayment = paymentMethod === 'card' || paymentMethod === 'transfer' || (paymentMethod === 'cash' && parseFloat(cashAmount || '0') >= finalTotal);
+
+    let isValidPayment = false;
+    if (paymentMethod === 'cash') {
+        isValidPayment = parseFloat(cashAmount || '0') >= finalTotal;
+    } else if (paymentMethod === 'card' || paymentMethod === 'transfer') {
+        isValidPayment = true;
+    } else if (paymentMethod === 'split') {
+        // Allow a small margin for floating point errors
+        isValidPayment = (splitCash + splitCard) >= (total - 0.01);
+    }
 
     const handleNumPadClick = (value: string) => {
+        const setAmount = paymentMethod === 'split' ? setSplitCashAmount : setCashAmount;
+        const currentAmount = paymentMethod === 'split' ? splitCashAmount : cashAmount;
+
         if (value === 'backspace') {
-            setCashAmount(prev => prev.slice(0, -1));
+            setAmount(prev => prev.slice(0, -1));
         } else if (value === 'clear') {
-            setCashAmount('');
+            setAmount('');
         } else if (value === '.') {
-            if (!cashAmount.includes('.')) {
-                setCashAmount(prev => prev + value);
+            if (!currentAmount.includes('.')) {
+                setAmount(prev => prev + value);
             }
         } else {
-            setCashAmount(prev => prev + value);
+            setAmount(prev => prev + value);
         }
     };
+
+    // Auto-calculate split card amount when cash changes
+    useEffect(() => {
+        if (paymentMethod === 'split') {
+            const cash = parseFloat(splitCashAmount || '0');
+            if (cash <= total) {
+                const remaining = total - cash;
+                setSplitCardAmount(remaining.toFixed(2));
+            } else {
+                setSplitCardAmount('0.00');
+            }
+        }
+    }, [splitCashAmount, total, paymentMethod]);
 
     const handleSubmit = async () => {
         if (!isValidPayment || isProcessing) return;
 
         setIsProcessing(true);
         try {
-            await onProcessPayment(
-                paymentMethod,
-                paymentMethod === 'cash' ? parseFloat(cashAmount) : undefined,
-                paymentMethod === 'card' ? cardCommission : 0
-            );
+            if (paymentMethod === 'split') {
+                await onProcessPayment(
+                    {
+                        method: 'split',
+                        cashAmount: splitCash,
+                        cardAmount: splitCard
+                    },
+                    splitCash + splitCard, // Total paid
+                    splitCardCommission // Commission only on card part
+                );
+            } else {
+                await onProcessPayment(
+                    paymentMethod,
+                    paymentMethod === 'cash' ? parseFloat(cashAmount) : undefined,
+                    paymentMethod === 'card' ? standardCardCommission : 0
+                );
+            }
             onClose();
         } catch (error) {
             console.error('Payment failed', error);
@@ -116,7 +175,13 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
                         {paymentMethod === 'card' && (
                             <div className="flex justify-between items-center mb-2 text-orange-400">
                                 <span>Comisión (4%)</span>
-                                <span className="font-mono">+${cardCommission.toFixed(2)}</span>
+                                <span className="font-mono">+${standardCardCommission.toFixed(2)}</span>
+                            </div>
+                        )}
+                        {paymentMethod === 'split' && splitCardCommission > 0 && (
+                            <div className="flex justify-between items-center mb-2 text-orange-400">
+                                <span>Comisión Tarjeta (4%)</span>
+                                <span className="font-mono">+${splitCardCommission.toFixed(2)}</span>
                             </div>
                         )}
                         <div className="flex justify-between items-center pt-2 border-t border-gray-700">
@@ -142,33 +207,47 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
                         <div className="grid grid-cols-2 gap-4">
                             <button
                                 onClick={() => setPaymentMethod('cash')}
-                                className={`p-6 rounded-xl border-2 flex flex-col items-center gap-2 transition-all ${paymentMethod === 'cash'
+                                className={`p-4 rounded-xl border-2 flex flex-col items-center gap-2 transition-all ${paymentMethod === 'cash'
                                     ? 'border-green-500 bg-green-500/10 text-green-400'
                                     : 'border-gray-700 bg-gray-800 text-gray-400 hover:border-gray-600'
                                     }`}
                             >
-                                <Banknote size={32} />
-                                <span className="font-bold text-lg">Efectivo</span>
+                                <Banknote size={24} />
+                                <span className="font-bold">Efectivo</span>
                             </button>
                             <button
                                 onClick={() => setPaymentMethod('card')}
-                                className={`p-6 rounded-xl border-2 flex flex-col items-center gap-2 transition-all ${paymentMethod === 'card'
+                                className={`p-4 rounded-xl border-2 flex flex-col items-center gap-2 transition-all ${paymentMethod === 'card'
                                     ? 'border-blue-500 bg-blue-500/10 text-blue-400'
                                     : 'border-gray-700 bg-gray-800 text-gray-400 hover:border-gray-600'
                                     }`}
                             >
-                                <CreditCard size={32} />
-                                <span className="font-bold text-lg">Tarjeta (+4%)</span>
+                                <CreditCard size={24} />
+                                <span className="font-bold">Tarjeta (+4%)</span>
                             </button>
                             <button
                                 onClick={() => setPaymentMethod('transfer')}
-                                className={`p-6 rounded-xl border-2 flex flex-col items-center gap-2 transition-all ${paymentMethod === 'transfer'
+                                className={`p-4 rounded-xl border-2 flex flex-col items-center gap-2 transition-all ${paymentMethod === 'transfer'
                                     ? 'border-purple-500 bg-purple-500/10 text-purple-400'
                                     : 'border-gray-700 bg-gray-800 text-gray-400 hover:border-gray-600'
                                     }`}
                             >
-                                <Banknote size={32} />
-                                <span className="font-bold text-lg">Transferencia</span>
+                                <Banknote size={24} />
+                                <span className="font-bold">Transferencia</span>
+                            </button>
+                            <button
+                                onClick={() => setPaymentMethod('split')}
+                                className={`p-4 rounded-xl border-2 flex flex-col items-center gap-2 transition-all ${paymentMethod === 'split'
+                                    ? 'border-orange-500 bg-orange-500/10 text-orange-400'
+                                    : 'border-gray-700 bg-gray-800 text-gray-400 hover:border-gray-600'
+                                    }`}
+                            >
+                                <div className="flex gap-1">
+                                    <Banknote size={20} />
+                                    <span className="text-gray-500">/</span>
+                                    <CreditCard size={20} />
+                                </div>
+                                <span className="font-bold">Dividido</span>
                             </button>
                         </div>
 
@@ -230,6 +309,70 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
                             </div>
                         )}
 
+                        {/* Split Payment Area */}
+                        {paymentMethod === 'split' && (
+                            <div className="flex gap-6 flex-1 min-h-0">
+                                <div className="flex-1 flex flex-col gap-4">
+                                    <div className="bg-gray-800 p-4 rounded-xl border border-gray-700">
+                                        <label className="block text-sm text-green-400 mb-1 font-bold">Monto en Efectivo</label>
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-2xl text-gray-400">$</span>
+                                            <input
+                                                type="text"
+                                                value={splitCashAmount}
+                                                readOnly
+                                                className="w-full bg-transparent text-4xl font-bold text-white outline-none font-mono"
+                                                placeholder="0.00"
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div className="bg-gray-800 p-4 rounded-xl border border-gray-700">
+                                        <label className="block text-sm text-blue-400 mb-1 font-bold">Monto en Tarjeta</label>
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-2xl text-gray-400">$</span>
+                                            <input
+                                                type="text"
+                                                value={splitCardAmount}
+                                                onChange={(e) => setSplitCardAmount(e.target.value)}
+                                                className="w-full bg-transparent text-4xl font-bold text-white outline-none font-mono"
+                                                placeholder="0.00"
+                                            />
+                                        </div>
+                                        <p className="text-xs text-gray-500 mt-1">
+                                            Comisión (4%): ${(parseFloat(splitCardAmount || '0') * 0.04).toFixed(2)}
+                                        </p>
+                                    </div>
+
+                                    <div className={`p-3 rounded-xl border text-center ${isValidPayment ? 'bg-green-900/20 border-green-900/50' : 'bg-red-900/20 border-red-900/50'}`}>
+                                        <p className="text-sm text-gray-400">Total Cubierto</p>
+                                        <p className={`text-xl font-bold font-mono ${isValidPayment ? 'text-green-400' : 'text-red-400'}`}>
+                                            ${(splitCash + splitCard).toFixed(2)} / ${finalTotal.toFixed(2)}
+                                        </p>
+                                    </div>
+                                </div>
+
+                                {/* Numeric Keypad for Split */}
+                                <div className="w-64 grid grid-cols-3 gap-2">
+                                    {[1, 2, 3, 4, 5, 6, 7, 8, 9, '.', 0].map((num) => (
+                                        <button
+                                            key={num}
+                                            onClick={() => handleNumPadClick(num.toString())}
+                                            className="bg-gray-800 hover:bg-gray-700 text-white text-xl font-bold rounded-lg p-4 transition-colors active:bg-gray-600"
+                                        >
+                                            {num}
+                                        </button>
+                                    ))}
+                                    <button
+                                        onClick={() => handleNumPadClick('backspace')}
+                                        className="bg-gray-800 hover:bg-red-900/50 text-red-400 rounded-lg p-4 flex items-center justify-center transition-colors"
+                                    >
+                                        <Delete size={24} />
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+
                         {/* Card Info */}
                         {paymentMethod === 'card' && (
                             <div className="flex-1 flex items-center justify-center text-center p-8 bg-gray-800/30 rounded-xl border border-dashed border-gray-700">
@@ -237,7 +380,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
                                     <CreditCard size={64} className="mx-auto text-blue-500 mb-4 opacity-50" />
                                     <h3 className="text-xl font-bold text-white mb-2">Pago con Tarjeta</h3>
                                     <p className="text-gray-400">
-                                        Se ha aplicado un cargo extra del 4% (${cardCommission.toFixed(2)})
+                                        Se ha aplicado un cargo extra del 4% (${standardCardCommission.toFixed(2)})
                                     </p>
                                     <p className="text-gray-400 mt-2">
                                         Proceda con la terminal bancaria por el monto de:

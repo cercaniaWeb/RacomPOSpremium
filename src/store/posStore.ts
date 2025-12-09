@@ -145,13 +145,47 @@ export const usePosStore = create<PosState>((set, get) => ({
     };
   },
 
-  checkout: async (paymentMethod = 'cash', amountPaid = 0, commissionAmount = 0) => {
+  checkout: async (paymentMethodOrDetails: string | { method: string, cashAmount?: number, cardAmount?: number } = 'cash', amountPaid = 0, commissionAmount = 0) => {
     const { cart, getTotals, saleNotes } = get();
     if (cart.length === 0) return null;
 
     const { subtotal, taxAmount, discountAmount, total } = getTotals();
-    const finalTotal = total + commissionAmount;
-    const changeAmount = amountPaid > 0 ? amountPaid - finalTotal : 0;
+
+    // Parse payment details
+    let paymentMethod = 'cash';
+    let splitDetails = null;
+    let finalCommission = commissionAmount;
+
+    if (typeof paymentMethodOrDetails === 'object') {
+      paymentMethod = paymentMethodOrDetails.method;
+      if (paymentMethod === 'split') {
+        splitDetails = {
+          cash: paymentMethodOrDetails.cashAmount || 0,
+          card: paymentMethodOrDetails.cardAmount || 0
+        };
+        // Commission is already calculated and passed in commissionAmount based on card portion
+      }
+    } else {
+      paymentMethod = paymentMethodOrDetails;
+    }
+
+    const finalTotal = total + finalCommission;
+
+    // Calculate change
+    let changeAmount = 0;
+    let recordedAmountPaid = amountPaid;
+
+    if (paymentMethod === 'split' && splitDetails) {
+      recordedAmountPaid = splitDetails.cash + splitDetails.card;
+      // For split, we assume exact payment or better, but if cash part has change:
+      // Actually change is usually only on cash part. 
+      // But here amountPaid is passed as total paid.
+      // If split, amountPaid should be sum of both.
+      if (amountPaid === 0) recordedAmountPaid = finalTotal;
+      changeAmount = recordedAmountPaid > finalTotal ? recordedAmountPaid - finalTotal : 0;
+    } else {
+      changeAmount = amountPaid > 0 ? amountPaid - finalTotal : 0;
+    }
 
     try {
       // Create sale record
@@ -160,13 +194,15 @@ export const usePosStore = create<PosState>((set, get) => ({
         total_amount: finalTotal,
         tax_amount: taxAmount,
         discount_amount: discountAmount,
-        commission_amount: commissionAmount,
-        amount_paid: amountPaid > 0 ? amountPaid : finalTotal, // If not provided, assume exact payment
+        commission_amount: finalCommission,
+        amount_paid: recordedAmountPaid > 0 ? recordedAmountPaid : finalTotal,
         change_amount: changeAmount,
         net_amount: subtotal,
         payment_method: paymentMethod,
         status: 'completed',
-        notes: saleNotes || undefined,
+        notes: paymentMethod === 'split'
+          ? `${saleNotes ? saleNotes + ' | ' : ''}Pago Dividido: Efectivo $${splitDetails?.cash.toFixed(2)}, Tarjeta $${splitDetails?.card.toFixed(2)}`
+          : saleNotes || undefined,
         created_at: new Date(),
         sync_status: 'pending',
       };
