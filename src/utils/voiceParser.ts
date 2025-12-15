@@ -21,7 +21,7 @@ export const parseProductVoiceCommand = (text: string): Partial<Product> => {
     let content = text.slice(idx + keyword.length).trim();
     
     // Stop at known other keywords to Clean up
-    const stopWords = ['precio', 'costo', 'stock', 'cantidad', 'código', 'barra'];
+    const stopWords = ['precio', 'costo', 'stock', 'cantidad', 'código', 'barra', 'producto', 'nombre'];
     
     // Find earliest stop word
     let minIdx = content.length;
