@@ -82,8 +82,11 @@ export const VoiceInventory = () => {
         
         const speakNext = (text: string) => {
              speak(text, () => {
-                resetTranscript();
-                startListening();
+                // Wait for the echo to clear before listening
+                setTimeout(() => {
+                    resetTranscript();
+                    startListening();
+                }, 800);
              });
         };
 
